@@ -30,7 +30,7 @@ async def chooseSchool(update, context):
         ],
         [ 
             InlineKeyboardButton("Back", callback_data='back'),
-            InlineKeyboardButton("Done", callback_data='done'),
+            InlineKeyboardButton("Cancel", callback_data='done'),
         ]
     ]
 
@@ -47,7 +47,7 @@ async def chooseCommitment(update, context):
         ],
         [ 
             InlineKeyboardButton("Back", callback_data='back'),
-            InlineKeyboardButton("Done", callback_data='done'),
+            InlineKeyboardButton("Cancel", callback_data='done'),
         ]
     ]
 
@@ -55,6 +55,27 @@ async def chooseCommitment(update, context):
 
     # await context.bot.send_message("Please choose a univerSITy:", reply_markup=reply_markup)
     await update.callback_query.message.edit_text("Select accordingly:", reply_markup=reply_markup)
+
+async def chooseSeekingDegree(update, context):
+    keyboard = [
+        [
+            InlineKeyboardButton("Bachelors", callback_data="bc"),
+            InlineKeyboardButton("Bachelors with Honours", callback_data="bchons")
+        ],
+        [
+            InlineKeyboardButton("Masters", callback_data="mast"),
+            InlineKeyboardButton("PhD", callback_data="phd")
+        ],
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Cancel", callback_data='done')
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # await context.bot.send_message("Please choose a univerSITy:", reply_markup=reply_markup)
+    await update.callback_query.message.edit_text("Please choose the degree you are pursuing:", reply_markup=reply_markup)
 
 async def selectSection(update, context):
     keyboard = [
@@ -89,7 +110,7 @@ async def saveUser(update, context):
         'username': user.username,
         'name': user.first_name,
         'chat_id': update.effective_chat.id,
-        'sch_id': 'undecided',
+        'sch': 'undecided',
         'curr_edu_id': 'unknown',
         'seek_deg_id': 'unknown',
         'ft': 'T'
@@ -126,8 +147,6 @@ async def saveSchool(update, context):
         sch_id = "SUSS"
     # elif (sch == "Others"):
     #     sch_id = "others"
-    else:
-        return # not any of the choices
 
     with open('users.json', 'r') as user_db:
         users = json.load(user_db)
@@ -136,7 +155,6 @@ async def saveSchool(update, context):
 
     with open('users.json', 'w') as user_db:
         json.dump(users, user_db)
-
 
     keyboard = [
         [ 
@@ -152,20 +170,6 @@ async def saveSchool(update, context):
     )
 
     return SCH
-
-
-async def done(update, context):
-    await update.callback_query.message.edit_text("Stop setting up.", reply_markup=None)
-
-    return DONE
-
-async def cancel(update, context):
-    user = update.message.from_user
-    await update.message.reply_text(
-        "Ok, we'll stop saving your settings", reply_markup=ReplyKeyboardRemove()
-    )
-
-    return ConversationHandler.END
 
 
 async def saveCommitment(update, context):
@@ -192,6 +196,44 @@ async def saveCommitment(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.edit_text(
         "Full time: " + is_ft + ".",
+        reply_markup=reply_markup
+    )
+    return
+
+
+async def saveSeekDeg(update, context):
+    user = update.callback_query.from_user
+
+    seek_deg = update.callback_query.data
+    seek_deg_id = ''
+
+    if (seek_deg == 'bc'):
+        seek_deg_id = "Bachelors"
+    elif (seek_deg == "bchons"):
+        seek_deg_id = "Bachelors with Honours"
+    elif (seek_deg == "masts"):
+        seek_deg_id = "Masters"
+    elif (seek_deg == "phd"):
+        seek_deg_id = "PhD"
+
+    with open('users.json', 'r') as user_db:
+        users = json.load(user_db)
+
+    users[str(user.id)]['seek_deg_id'] = seek_deg_id
+
+    with open('users.json', 'w') as user_db:
+        json.dump(users, user_db)
+
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "Seeking degree: " + seek_deg_id + ".",
         reply_markup=reply_markup
     )
     return
@@ -232,6 +274,35 @@ async def fetch(update, context):
     await update.message.reply_text("Scholarships can be found at " + sch_web)
 
 
+async def showProfile(update, context):
+    user = update.message.from_user
+
+    with open('users.json', 'r') as user_db:
+        users = json.load(user_db)
+
+    msg = ''
+    profile = users[str(user.id)]
+    for info in profile:
+        if info == "chat_id":
+            continue
+        msg += info + ": " + str(profile[info]) + "\n"
+    
+    await update.message.reply_text(msg)
+
+
+async def done(update, context):
+    await update.callback_query.message.edit_text("Stop setting up.", reply_markup=None)
+
+    return DONE
+
+async def cancel(update, context):
+    user = update.message.from_user
+    await update.message.reply_text(
+        "Ok, we'll stop saving your settings", reply_markup=ReplyKeyboardRemove()
+    )
+
+    return ConversationHandler.END
+
 bot = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # a bit buggy now
@@ -256,14 +327,15 @@ bot.add_handler(CallbackQueryHandler(selectSection, pattern='^back'))
 bot.add_handler(CallbackQueryHandler(done, pattern='^done$'))
 bot.add_handler(CallbackQueryHandler(chooseCommitment, pattern='^ft$'))
 bot.add_handler(CallbackQueryHandler(saveCommitment, pattern='^ft-*'))
+bot.add_handler(CallbackQueryHandler(chooseSeekingDegree, pattern='^seekdeg$'))
 
-# this callback encompasses all (no search for pattern)
-# put behind every other for now
 bot.add_handler(CallbackQueryHandler(saveSchool, pattern='^(?i)(nus|ntu|smu|sutd|sit|suss)'))
+bot.add_handler(CallbackQueryHandler(saveSeekDeg, pattern='^(?i)(bc|bchons|mast|phd)'))
 
 bot.add_handler(CommandHandler("hello", hello))
 bot.add_handler(CommandHandler("register", selectSection))
 bot.add_handler(CommandHandler("fetch", fetch))
+bot.add_handler(CommandHandler("show", showProfile))
 bot.add_handler(settings_handler)
 bot.run_polling()
 
