@@ -4,6 +4,7 @@ import requests
 import os
 from dotenv import load_dotenv
 import json
+import re
 
 load_dotenv()
 
@@ -36,13 +37,33 @@ async def chooseSchool(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # await context.bot.send_message("Please choose a univerSITy:", reply_markup=reply_markup)
-    await update.callback_query.message.edit_text("Please choose a univerSITy:", reply_markup=reply_markup)
+    await update.callback_query.message.edit_text("Please choose a university:", reply_markup=reply_markup)
+
+async def chooseCommitment(update, context):
+    keyboard = [
+        [
+            InlineKeyboardButton("Full-time", callback_data="ft-T"),
+            InlineKeyboardButton("Part-time", callback_data="ft-F")
+        ],
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done'),
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # await context.bot.send_message("Please choose a univerSITy:", reply_markup=reply_markup)
+    await update.callback_query.message.edit_text("Select accordingly:", reply_markup=reply_markup)
 
 async def selectSection(update, context):
     keyboard = [
         [
-            InlineKeyboardButton("Personal Information", callback_data="pinfo"),
+            InlineKeyboardButton("Personal Information", callback_data="pinfo")
+        ],
+        [
             InlineKeyboardButton("School", callback_data="sch"),
+            InlineKeyboardButton("Commitment", callback_data="ft")
         ],
         [
             InlineKeyboardButton("Current education", callback_data="curred"),
@@ -70,7 +91,8 @@ async def saveUser(update, context):
         'chat_id': update.effective_chat.id,
         'sch_id': 'undecided',
         'curr_edu_id': 'unknown',
-        'seek_deg_id': 'unknown'
+        'seek_deg_id': 'unknown',
+        'ft': 'T'
     } 
 
     with open('users.json', 'r') as user_db:
@@ -81,26 +103,14 @@ async def saveUser(update, context):
     with open('users.json', 'w') as user_db:
         json.dump(users, user_db)
 
-    reply_keyboard = [["Undecided", "NUS", "NTU"], 
-                      ["SMU", "SUTD", "SIT"],
-                      ["SUSS", "Others"]]
-
-    await update.message.reply_text(
-        "Which school are you applying for?",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True, input_field_placeholder="School?"
-        )
-    )
-
-    return SCH
 
 async def saveSchool(update, context):
-    user = update.message.from_user if update.message != None else update.callback_query.from_user
+    user = update.callback_query.from_user
 
-    sch = update.message.text if update.message != None else update.callback_query.data
+    sch = update.callback_query.data
     sch_id = ''
 
-    if (sch == "undecided"):
+    if (sch == "Undecided"):
         sch_id = ""
     elif (sch == "NUS"):
         sch_id = "NUS"
@@ -128,25 +138,21 @@ async def saveSchool(update, context):
         json.dump(users, user_db)
 
 
-    if update.message != None:
-        await update.message.reply_text(
-            "School saved as " + sch + ".",
-            reply_markup=ReplyKeyboardRemove())
-    else:
-        keyboard = [
-            [ 
-                InlineKeyboardButton("Back", callback_data='back'),
-                InlineKeyboardButton("Done", callback_data='done')
-            ]
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
         ]
+    ]
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.callback_query.message.edit_text(
-            "School saved as " + sch + ".",
-            reply_markup=reply_markup
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "School saved as " + sch + ".",
+        reply_markup=reply_markup
     )
 
     return SCH
+
 
 async def done(update, context):
     await update.callback_query.message.edit_text("Stop setting up.", reply_markup=None)
@@ -160,6 +166,70 @@ async def cancel(update, context):
     )
 
     return ConversationHandler.END
+
+
+async def saveCommitment(update, context):
+    user = update.callback_query.from_user
+
+    is_ft_string = update.callback_query.data
+    is_ft = re.sub('^ft-', '', is_ft_string)
+
+    with open('users.json', 'r') as user_db:
+        users = json.load(user_db)
+
+    users[str(user.id)]['ft'] = is_ft
+
+    with open('users.json', 'w') as user_db:
+        json.dump(users, user_db)
+
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "Full time: " + is_ft + ".",
+        reply_markup=reply_markup
+    )
+    return
+
+
+async def fetch(update, context):
+    user = update.message.from_user
+
+    with open('users.json', 'r') as user_db:
+        users = json.load(user_db)
+
+    sch = users[str(user.id)]['sch']
+    if_ft = users[str(user.id)]['ft']
+    sch_web = ''
+
+    if (sch == "undecided"):
+        sch_web = "No school indicated"
+    elif (sch == "NUS"):
+        sch_web = "https://www.nus.edu.sg/oam/scholarships"
+    elif (sch == "NTU"):
+        sch_web = "https://www.ntu.edu.sg/admissions/undergraduate/scholarships"
+    elif (sch == "SMU"):
+        sch_web = "https://admissions.smu.edu.sg/scholarships"
+    elif (sch == "SUTD"):
+        sch_web = "https://www.sutd.edu.sg/Admissions/Undergraduate/Scholarship/Application-for-scholarships"
+    elif (sch == "SIT"):
+        sch_web = "https://www.singaporetech.edu.sg/admissions/undergraduate/scholarships"
+    elif (sch == "SUSS"):
+        if if_ft == 'T':
+            sch_web = "https://www.suss.edu.sg/full-time-undergraduate/admissions/suss-scholarships-awards"
+        else:
+            sch_web = "https://www.suss.edu.sg/part-time-undergraduate/admissions/scholarships"
+    # elif (sch == "Others"):
+    #     sch_web = "others"
+    else:
+        return # not any of the choices
+
+    await update.message.reply_text("Scholarships can be found at " + sch_web)
 
 
 bot = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -184,13 +254,16 @@ settings_handler = ConversationHandler(
 bot.add_handler(CallbackQueryHandler(chooseSchool, pattern='^sch'))
 bot.add_handler(CallbackQueryHandler(selectSection, pattern='^back'))
 bot.add_handler(CallbackQueryHandler(done, pattern='^done$'))
+bot.add_handler(CallbackQueryHandler(chooseCommitment, pattern='^ft$'))
+bot.add_handler(CallbackQueryHandler(saveCommitment, pattern='^ft-*'))
 
 # this callback encompasses all (no search for pattern)
 # put behind every other for now
-bot.add_handler(CallbackQueryHandler(saveSchool)) 
+bot.add_handler(CallbackQueryHandler(saveSchool, pattern='^(?i)(nus|ntu|smu|sutd|sit|suss)'))
 
 bot.add_handler(CommandHandler("hello", hello))
 bot.add_handler(CommandHandler("register", selectSection))
+bot.add_handler(CommandHandler("fetch", fetch))
 bot.add_handler(settings_handler)
 bot.run_polling()
 
