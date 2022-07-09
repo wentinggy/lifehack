@@ -10,70 +10,56 @@ load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CAT_API_KEY = os.getenv('CAT_API_KEY')
 
-BREED, NO_OF_PHOTOS, GIF = range(3)
+SCH, DONE, GIF = range(3)
 
 async def hello(update, context):
     await update.message.reply_text(f'Hello {update.effective_user.first_name}')
 
-async def getCat(update, context):
-    user = update.message.from_user
-    with open('users.json', 'r') as user_db:
-        users = json.load(user_db)
-
-    if str(user.id) in users:
-        user_info = users[str(user.id)]
-        breed = '' if user_info["breed"] == 'all' else 'breed_ids=' + user_info['breed']
-        no_of_photos = int(user_info["no_of_photos"])
-        is_gif = "gif" if user_info["is_gif"] else "jpg,png"
-
-        cats = requests.get(f'https://api.thecatapi.com/v1/images/search?api_key{CAT_API_KEY}&limit={no_of_photos}&{breed}&mime_types={is_gif}').json()
-
-        if not cats:
-            await update.message.reply_text("Sorry, theres no cats for your settings. Try changing them!")
-            return
-
-        for cat in cats:
-            url = cat['url']
-            if user_info["is_gif"]:
-                await context.bot.send_animation(chat_id=update.effective_chat.id, animation=url)
-            else:
-                await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
-    
-        if len(cats) < no_of_photos:
-            await update.message.reply_text("Sorry, that's all the cats we could find")
-
-    else:
-        cats = requests.get(f'https://api.thecatapi.com/v1/images/search?api_key{CAT_API_KEY}').json()
-        url = cats[0]['url']
-        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
-
-
-async def chooseBreed(update, context):
+async def chooseSchool(update, context):
     keyboard = [
         [
-            InlineKeyboardButton("British Shorthair", callback_data="bsho"),
-            InlineKeyboardButton("Bengal", callback_data="beng"),
+            InlineKeyboardButton("NUS", callback_data="NUS"),
+            InlineKeyboardButton("NTU", callback_data="NTU"),
+            InlineKeyboardButton("SMU", callback_data="SMU")
         ],
         [
-            InlineKeyboardButton("Persian", callback_data="pers"),
-            InlineKeyboardButton("Munchkin", callback_data="munc"),
+            InlineKeyboardButton("SUTD", callback_data="SUTD"),
+            InlineKeyboardButton("SIT", callback_data="SIT"),
+            InlineKeyboardButton("SUSS", callback_data="SUSS")
+        ],
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done'),
         ]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text("Please choose a breed:", reply_markup=reply_markup)
+    # await context.bot.send_message("Please choose a univerSITy:", reply_markup=reply_markup)
+    await update.callback_query.message.edit_text("Please choose a univerSITy:", reply_markup=reply_markup)
 
-async def getCatWithBreed(update, context):
-    query = update.callback_query
+async def selectSection(update, context):
+    keyboard = [
+        [
+            InlineKeyboardButton("Personal Information", callback_data="pinfo"),
+            InlineKeyboardButton("School", callback_data="sch"),
+        ],
+        [
+            InlineKeyboardButton("Current education", callback_data="curred"),
+            InlineKeyboardButton("Seeking degree", callback_data="seekdeg"),
+        ],
+        [ 
+            InlineKeyboardButton("Cancel", callback_data='done')
+        ]
+    ]
 
-    await query.answer()
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    breed = query.data
+    if update.message != None:
+        await update.message.reply_text("Please select the section to set up", reply_markup=reply_markup)
+    else:
+        await update.callback_query.message.edit_text("Please select the section to set up", reply_markup=reply_markup)
 
-    cats = requests.get(f'https://api.thecatapi.com/v1/images/search?api_key{CAT_API_KEY}&breed_ids={breed}').json()
-    url = cats[0]['url']
-    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
 
 async def saveUser(update, context):
     user = update.message.from_user
@@ -82,9 +68,9 @@ async def saveUser(update, context):
         'username': user.username,
         'name': user.first_name,
         'chat_id': update.effective_chat.id,
-        'breed': 'all',
-        'no_of_photos': '1',
-        'is_gif': False
+        'sch_id': 'undecided',
+        'curr_edu_id': 'unknown',
+        'seek_deg_id': 'unknown'
     } 
 
     with open('users.json', 'r') as user_db:
@@ -95,110 +81,77 @@ async def saveUser(update, context):
     with open('users.json', 'w') as user_db:
         json.dump(users, user_db)
 
-    reply_keyboard = [["All of them!", "Bengal", "Persian"], 
-                      ["Munchkin", "Ragamuffin", "Burmese"],
-                      ["Russian Blue", "Maine Coon", "Abyssinian"]]
+    reply_keyboard = [["Undecided", "NUS", "NTU"], 
+                      ["SMU", "SUTD", "SIT"],
+                      ["SUSS", "Others"]]
 
     await update.message.reply_text(
-        "Ok, what's your favourite breed?",
+        "Which school are you applying for?",
         reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Favourite Breed?"
+            reply_keyboard, one_time_keyboard=True, input_field_placeholder="School?"
         )
     )
 
-    return BREED
+    return SCH
 
-async def saveBreed(update, context):
-    user = update.message.from_user
+async def saveSchool(update, context):
+    user = update.message.from_user if update.message != None else update.callback_query.from_user
 
-    breed = update.message.text
-    breed_id = ''
+    sch = update.message.text if update.message != None else update.callback_query.data
+    sch_id = ''
 
-    if (breed == "All of them!"):
-        breed_id = "all"
-    elif (breed == "Bengal"):
-        breed_id = "beng"
-    elif (breed == "Persian"):
-        breed_id = "pers"
-    elif (breed == "Munchkin"):
-        breed_id = "munc"
-    elif (breed == "Ragamuffin"):
-        breed_id = "raga"
-    elif (breed == "Burmese"):
-        breed_id = "bure"
-    elif (breed == "Russian Blue"):
-        breed_id = "rblu"
-    elif (breed == "Maine Coon"):
-        breed_id = "mcoo"
-    elif (breed == "Abyssinian"):
-        breed_id = "abys"
-
-    with open('users.json', 'r') as user_db:
-        users = json.load(user_db)
-
-    users[str(user.id)]['breed'] = breed_id
-
-    with open('users.json', 'w') as user_db:
-        json.dump(users, user_db)
-
-    await update.message.reply_text(
-        "Good choice! how many photos would you like to get at once?",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    return NO_OF_PHOTOS
-
-async def invalidPhotoNo(update, context):
-    await update.message.reply_text(
-        "Please enter a number between 1 and 9",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    return NO_OF_PHOTOS
-
-async def saveNoOfPhotos(update, context):
-    user = update.message.from_user
-
-    no_of_photos = update.message.text
+    if (sch == "undecided"):
+        sch_id = ""
+    elif (sch == "NUS"):
+        sch_id = "NUS"
+    elif (sch == "NTU"):
+        sch_id = "NTU"
+    elif (sch == "SMU"):
+        sch_id = "SMU"
+    elif (sch == "SUTD"):
+        sch_id = "SUTD"
+    elif (sch == "SIT"):
+        sch_id = "SIT"
+    elif (sch == "SUSS"):
+        sch_id = "SUSS"
+    # elif (sch == "Others"):
+    #     sch_id = "others"
+    else:
+        return # not any of the choices
 
     with open('users.json', 'r') as user_db:
         users = json.load(user_db)
 
-    users[str(user.id)]['no_of_photos'] = no_of_photos
+    users[str(user.id)]['sch'] = sch_id
 
     with open('users.json', 'w') as user_db:
         json.dump(users, user_db)
 
-    reply_keyboard = [["GIF", "JPG"]]
 
-    await update.message.reply_text(
-        "Got it! Now do you want gifs or jpgs?",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Gif or Jpg?"
-        )
+    if update.message != None:
+        await update.message.reply_text(
+            "School saved as " + sch + ".",
+            reply_markup=ReplyKeyboardRemove())
+    else:
+        keyboard = [
+            [ 
+                InlineKeyboardButton("Back", callback_data='back'),
+                InlineKeyboardButton("Done", callback_data='done')
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.callback_query.message.edit_text(
+            "School saved as " + sch + ".",
+            reply_markup=reply_markup
     )
 
-    return GIF
+    return SCH
 
-async def saveGif(update, context):
-    user = update.message.from_user
+async def done(update, context):
+    await update.callback_query.message.edit_text("Stop setting up.", reply_markup=None)
 
-    is_gif = update.message.text == "GIF"
-    
-    with open('users.json', 'r') as user_db:
-        users = json.load(user_db)
-
-    users[str(user.id)]['is_gif'] = is_gif
-
-    with open('users.json', 'w') as user_db:
-        json.dump(users, user_db)
-
-    await update.message.reply_text(
-        "Thanks! Your settings have been saved.",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    return ConversationHandler.END
+    return DONE
 
 async def cancel(update, context):
     user = update.message.from_user
@@ -211,36 +164,33 @@ async def cancel(update, context):
 
 bot = ApplicationBuilder().token(BOT_TOKEN).build()
 
+# a bit buggy now
 settings_handler = ConversationHandler(
         entry_points=[CommandHandler("settings", saveUser)],
         states={
-            BREED: [MessageHandler(filters.Regex("""^(All of them!|
-                                                      Bengal|
-                                                      Persian|
-                                                      Munchkin|
-                                                      Ragamuffin|
-                                                      Burmese|
-                                                      Russian Blue|
-                                                      Maine Coon|
-                                                      Abyssinian)$"""), saveBreed)],
-
-            NO_OF_PHOTOS: [
-                            MessageHandler(filters.TEXT & filters.Regex("[1-9]"), saveNoOfPhotos), 
-                            MessageHandler(~(filters.TEXT & filters.Regex("[1-9]")), invalidPhotoNo)
-                          ],
-
-            GIF: [
-                MessageHandler(filters.TEXT & filters.Regex("^(GIF|JPG)$"), saveGif),
-            ],
+            SCH: [MessageHandler(filters.Regex("""^(Undecided|
+                                                      NUS|
+                                                      NTU|
+                                                      SMU|
+                                                      SUTD|
+                                                      SIT|
+                                                      SUSS|
+                                                      Others)$"""), saveSchool)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-bot.add_handler(CommandHandler("hello", hello))
-bot.add_handler(CommandHandler("cat", getCat))
-bot.add_handler(CommandHandler("breed", chooseBreed))
-bot.add_handler(CallbackQueryHandler(getCatWithBreed))
-bot.add_handler(settings_handler)
+# callback handlers
+bot.add_handler(CallbackQueryHandler(chooseSchool, pattern='^sch'))
+bot.add_handler(CallbackQueryHandler(selectSection, pattern='^back'))
+bot.add_handler(CallbackQueryHandler(done, pattern='^done$'))
 
+# this callback encompasses all (no search for pattern)
+# put behind every other for now
+bot.add_handler(CallbackQueryHandler(saveSchool)) 
+
+bot.add_handler(CommandHandler("hello", hello))
+bot.add_handler(CommandHandler("register", selectSection))
+bot.add_handler(settings_handler)
 bot.run_polling()
 
