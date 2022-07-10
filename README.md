@@ -1,5 +1,9 @@
-# lifehack
-A telegram bot that helps to collate scholarship providers for prospective students
+# lifehack 
+Problem statement: Whilst Singapore is considered a developed nation, there are still many who are less fortunate than others. How can we embrace inclusivity and integrate people who might otherwise be excluded or marginalized? 
+
+Often, scholarship money gets unused as students do not know of the existence of these scholarships. As such some students choose not to continue their tertiary education as they lack the financial means to do so. As such we created scholYOUship.
+
+ScholYOUship is a telegram bot that helps to collate scholarship providers for prospective students
 to enable more to receive the financial aid required for their education and hopefully
 allow more students to be able to feed their passion for learning.
 
