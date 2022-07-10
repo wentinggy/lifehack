@@ -105,12 +105,13 @@ async def chooseAge(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.edit_text("How old are you?", reply_markup=reply_markup)
 
+
 async def chooseGender(update, context):
     keyboard = [
         [
-            InlineKeyboardButton("Male", callback_data="Male"),
-            InlineKeyboardButton("Female", callback_data="Female"),
-            InlineKeyboardButton("Others", callback_data="Others")
+            InlineKeyboardButton("Male", callback_data="sex-male"),
+            InlineKeyboardButton("Female", callback_data="sex-female"),
+            InlineKeyboardButton("Others", callback_data="sex-others")
         ],
         [ 
             InlineKeyboardButton("Back", callback_data='back'),
@@ -121,16 +122,17 @@ async def chooseGender(update, context):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.edit_text("What is your gender?", reply_markup=reply_markup)
 
+
 async def chooseCitizenship(update, context):
     keyboard = [
         [
-            InlineKeyboardButton("Singaporean", callback_data="Singaporean"),
-            InlineKeyboardButton("PR", callback_data="PR"),
+            InlineKeyboardButton("Singaporean", callback_data="c-sg"),
+            InlineKeyboardButton("PR", callback_data="c-pr"),
 
         ],
        [
 
-            InlineKeyboardButton("International Student", callback_data="International Student")
+            InlineKeyboardButton("International Student", callback_data="c-intl")
         ],
         [ 
             InlineKeyboardButton("Back", callback_data='back'),
@@ -142,32 +144,20 @@ async def chooseCitizenship(update, context):
     await update.callback_query.message.edit_text("What is your citizenship?", reply_markup=reply_markup)
 
 
-
-
 async def selectSection(update, context):
     keyboard = [
-        [
-
-            InlineKeyboardButton("Personal Information", callback_data="pinfo")
-        ],
         [
             InlineKeyboardButton("School", callback_data="sch"),
             InlineKeyboardButton("Commitment", callback_data="ft")
         ],
         [
-
-            InlineKeyboardButton("Personal Information", callback_data="pinfo"),
             InlineKeyboardButton("Age", callback_data="age"),
+            InlineKeyboardButton("Gender", callback_data="gender")
             
         ],
         [
-            InlineKeyboardButton("Gender", callback_data="gender"),
             InlineKeyboardButton("Citizenship", callback_data="citizenship"),
-        ],
-        [
-      
-            InlineKeyboardButton("Current education", callback_data="curred"),
-            InlineKeyboardButton("Seeking degree", callback_data="seekdeg"),
+            InlineKeyboardButton("Seeking degree", callback_data="seekdeg")
         ],
         [ 
             InlineKeyboardButton("Cancel", callback_data='done')
@@ -195,8 +185,10 @@ async def saveUser(update, context):
         'citizenship_id': 'unknown',
         'curr_edu_id': 'unknown',
         'seek_deg_id': 'unknown',
-        'ft': 'T'
-
+        'ft': 'T',
+        'age': 'unknown',
+        'citizenship': 'unknown',
+        'gender': 'unknown'
     } 
 
     with open('users.json', 'r') as user_db:
@@ -285,30 +277,16 @@ async def saveCommitment(update, context):
 
 
 async def saveAge(update, context):
-    user = update.message.from_user if update.message != None else update.callback_query.from_user
+    user = update.callback_query.from_user
 
-    age = update.message.text if update.message != None else update.callback_query.data
+    age = update.callback_query.data
     age_id = ''
 
-    if (age == "unknown"):
-        age_id = ""
-    elif (age == "18"):
-        age_id = "18"
-    elif (age == "19"):
-        age_id = "19"
-    elif (age == "20"):
-        age_id = "21"
-    elif (age == "22"):
-        age_id = "23"
-    elif (age == "24"):
-        age_id = "24"
-    elif (age == "25"):
-        age_id = "25"
-    elif (age == "26"):
-        age_id = "26"
-
-    else:
-        return # not any of the choices
+    try:
+        int(age)
+        age_id = age
+    except ValueError:
+        return
 
     with open('users.json', 'r') as user_db:
         users = json.load(user_db)
@@ -319,71 +297,56 @@ async def saveAge(update, context):
         json.dump(users, user_db)
 
 
-    if update.message != None:
-        await update.message.reply_text(
-            "Age saved as " + age + ".",
-            reply_markup=ReplyKeyboardRemove())
-    else:
-        keyboard = [
-            [ 
-                InlineKeyboardButton("Back", callback_data='back'),
-                InlineKeyboardButton("Done", callback_data='done')
-            ]
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
         ]
+    ]
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.callback_query.message.edit_text(
-            "Age saved as " + age + ".",
-            reply_markup=reply_markup
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "Age saved as " + age + ".",
+        reply_markup=reply_markup
     )
 
     return AGE
 
-async def saveGender(update, context):
-    user = update.message.from_user if update.message != None else update.callback_query.from_user
 
-    gender = update.message.text if update.message != None else update.callback_query.data
+async def saveGender(update, context):
+    user = update.callback_query.from_user
+
+    gender_string = update.callback_query.data
+    gender = re.sub('^sex-', '', gender_string)
     gender_id = ''
 
     if (gender == "unknown"):
         gender_id = ""
-    elif (gender == "Male"):
-        gender_id = "Male"
-    elif (gender == "Female"):
-        gender_id = "Female"
-    elif (gender == "Others"):
-        gender_id = "Others"
-
-    else:
-        return # not any of the choices
+    elif (gender in ["male", "female", "others"]):
+        gender_id = gender
 
     with open('users.json', 'r') as user_db:
         users = json.load(user_db)
 
     users[str(user.id)]['gender'] = gender_id
 
-
     with open('users.json', 'w') as user_db:
         json.dump(users, user_db)
 
-    if update.message != None:
-        await update.message.reply_text(
-            "Gender saved as " + gender + ".",
-            reply_markup=ReplyKeyboardRemove())
-    else:
-        keyboard = [
-            [ 
-                InlineKeyboardButton("Back", callback_data='back'),
-                InlineKeyboardButton("Done", callback_data='done')
-            ]
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
         ]
+    ]
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.callback_query.message.edit_text(
-            "Gender saved as " + gender + ".",
-            reply_markup=reply_markup
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "Gender saved as " + gender_id + ".",
+        reply_markup=reply_markup
     )
     return GENDER
+
 
 async def saveSeekDeg(update, context):
     user = update.callback_query.from_user
@@ -395,7 +358,7 @@ async def saveSeekDeg(update, context):
         seek_deg_id = "Bachelors"
     elif (seek_deg == "bchons"):
         seek_deg_id = "Bachelors with Honours"
-    elif (seek_deg == "masts"):
+    elif (seek_deg == "mast"):
         seek_deg_id = "Masters"
     elif (seek_deg == "phd"):
         seek_deg_id = "PhD"
@@ -421,22 +384,22 @@ async def saveSeekDeg(update, context):
         reply_markup=reply_markup
     )
     return
-
     
 
 async def saveCitizen(update, context):
-    user = update.message.from_user if update.message != None else update.callback_query.from_user
+    user = update.callback_query.from_user
 
-    citizenship = update.message.text if update.message != None else update.callback_query.data
+    citizenship_string = update.callback_query.data
+    citizenship = re.sub('^c-', '', citizenship_string)
     citizenship_id = ''
 
     if (citizenship == "unknown"):
         citizenship_id = ""
-    elif (citizenship == "Singaporean"):
+    elif (citizenship == "sg"):
         citizenship_id = "Singaporean"
-    elif (citizenship == "PR"):
+    elif (citizenship == "pr"):
         citizenship_id = "PR"
-    elif (citizenship == "International Student"):
+    elif (citizenship == "intl"):
         citizenship_id = "International Student"
 
     else:
@@ -444,25 +407,23 @@ async def saveCitizen(update, context):
 
     with open('users.json', 'r') as user_db:
         users = json.load(user_db)
+
     users[str(user.id)]['citizenship'] = citizenship_id
+
     with open('users.json', 'w') as user_db:
         json.dump(users, user_db)
-    if update.message != None:
-        await update.message.reply_text(
-            "Citizenship saved as " + citizenship + ".",
-            reply_markup=ReplyKeyboardRemove())
-    else:
-        keyboard = [
-            [ 
-                InlineKeyboardButton("Back", callback_data='back'),
-                InlineKeyboardButton("Done", callback_data='done')
-            ]
-        ]
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.callback_query.message.edit_text(
-            "Citizenship saved as " + citizenship + ".",
-            reply_markup=reply_markup
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "Citizenship saved as " + citizenship_id + ".",
+        reply_markup=reply_markup
     )
 
     return CITIZENSHIP
@@ -470,6 +431,10 @@ async def saveCitizen(update, context):
 
 async def fetch(update, context):
     user = update.message.from_user
+
+    with open('users.json', 'r') as user_db:
+        users = json.load(user_db)
+
     sch = users[str(user.id)]['sch']
     if_ft = users[str(user.id)]['ft']
     if_SG = users[str(user.id)]['citizenship']
@@ -492,18 +457,18 @@ async def fetch(update, context):
             sch_web = "https://www.suss.edu.sg/full-time-undergraduate/admissions/suss-scholarships-awards"
         else:
             sch_web = "https://www.suss.edu.sg/part-time-undergraduate/admissions/scholarships"
+
+       #based on citizenship
+    if (if_SG == "International Student"):
+        sch_web = "https://oyaop.com/opportunity/scholarships-and-fellowships/schwarzman-scholarships-for-international-students-fully-funded-apply-now/"
+
     # elif (sch == "Others"):
     #     sch_web = "others"
     else:
         return # not any of the choices
+
     await update.message.reply_text("Scholarships can be found at " + sch_web)
 
-    #based on citizenship
-    if (if_SG == "International Student"):
-        sch_web = "https://oyaop.com/opportunity/scholarships-and-fellowships/schwarzman-scholarships-for-international-students-fully-funded-apply-now/"
-
-
-    
 
 async def saveSchool(update, context):
     user = update.message.from_user if update.message != None else update.callback_query.from_user
@@ -513,18 +478,9 @@ async def saveSchool(update, context):
 
     if (sch == "undecided"):
         sch_id = ""
-    elif (sch == "NUS"):
-        sch_id = "NUS"
-    elif (sch == "NTU"):
-        sch_id = "NTU"
-    elif (sch == "SMU"):
-        sch_id = "SMU"
-    elif (sch == "SUTD"):
-        sch_id = "SUTD"
-    elif (sch == "SIT"):
-        sch_id = "SIT"
-    elif (sch == "SUSS"):
-        sch_id = "SUSS"
+    elif (sch in ["NUS", "NTU", "SMU", "SUTD", "SIT", "SUSS"]):
+        sch_id = sch
+
     # elif (sch == "Others"):
     #     sch_id = "others"
     else:
@@ -532,6 +488,25 @@ async def saveSchool(update, context):
 
     with open('users.json', 'r') as user_db:
         users = json.load(user_db)
+
+    users[str(user.id)]['sch'] = sch_id
+
+    with open('users.json', 'w') as user_db:
+        json.dump(users, user_db)
+
+    keyboard = [
+        [ 
+            InlineKeyboardButton("Back", callback_data='back'),
+            InlineKeyboardButton("Done", callback_data='done')
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "School saved as " + sch_id + ".",
+        reply_markup=reply_markup
+    )
+    return
 
 
 async def showProfile(update, context):
@@ -583,9 +558,9 @@ settings_handler = ConversationHandler(
     )
 
 # callback handlers
-bot.add_handler(CallbackQueryHandler(chooseSchool, pattern='^sch'))
+bot.add_handler(CallbackQueryHandler(chooseSchool, pattern='^sch$'))
 
-bot.add_handler(CallbackQueryHandler(selectSection, pattern='^back'))
+bot.add_handler(CallbackQueryHandler(selectSection, pattern='^back$'))
 bot.add_handler(CallbackQueryHandler(done, pattern='^done$'))
 
 bot.add_handler(CallbackQueryHandler(chooseAge, pattern='^age$'))
@@ -597,9 +572,9 @@ bot.add_handler(CallbackQueryHandler(chooseSeekingDegree, pattern='^seekdeg$'))
 
 bot.add_handler(CallbackQueryHandler(saveSchool, pattern='^(?i)(nus|ntu|smu|sutd|sit|suss)'))
 bot.add_handler(CallbackQueryHandler(saveSeekDeg, pattern='^(?i)(bc|bchons|mast|phd)'))
-bot.add_handler(CallbackQueryHandler(saveAge)) 
-bot.add_handler(CallbackQueryHandler(saveGender)) 
-bot.add_handler(CallbackQueryHandler(saveCitizen)) 
+bot.add_handler(CallbackQueryHandler(saveAge, pattern='^[-+]?[0-9]+$')) 
+bot.add_handler(CallbackQueryHandler(saveGender, pattern='^sex') )
+bot.add_handler(CallbackQueryHandler(saveCitizen, pattern='^c-')) 
 
 bot.add_handler(CommandHandler("hello", hello))
 bot.add_handler(CommandHandler("register", selectSection))
