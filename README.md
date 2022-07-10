@@ -13,7 +13,7 @@ download all the necessay imports
   For Mac: source venv/bin/activate
 -pip install python-telegram-bot --pre python_dotenv requests 
 
-Step 1: Type '/Hello' to start
+Step 1: Find https://t.me/scholYOUship_bot on telegram and Type '/Hello' to start
 
 Step 2: Type `/setting` to get your user registered with the bot.
 
