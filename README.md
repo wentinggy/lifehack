@@ -6,7 +6,9 @@ allow more students to be able to feed their passion for learning.
 ## Getting started
 
 Step 1: Type `/setting` to get your user registered with the bot.
+
 Step 2: Update your details with `/register`.
+
 Step 3: Fetch available scholarships links tailored to your profile!
 
 ## Coming soon
