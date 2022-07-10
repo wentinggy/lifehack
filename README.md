@@ -10,6 +10,7 @@ allow more students to be able to feed their passion for learning.
 ## Getting started
 download all the necessay imports 
 -activate your virtualenv 
+  For Mac: source venv/bin/activate
 -pip install python-telegram-bot --pre python_dotenv requests 
 
 Step 1: Type '/Hello' to start
