@@ -10,11 +10,13 @@ allow more students to be able to feed their passion for learning.
 ## Getting started
 download all the necessay imports 
 
-Step 1: Type `/setting` to get your user registered with the bot.
+Step 1: Type '/Hello' to start
 
-Step 2: Update your details with `/register`.
+Step 2: Type `/setting` to get your user registered with the bot.
 
-Step 3: Fetch available scholarships links tailored to your profile!
+Step 3: Update your details with `/register`.
+
+Step 4: Fetch available scholarships links tailored to your profile!
 
 ## Coming soon
 - Include more scholarship providers (e.g. from government agencies)
