@@ -1,11 +1,11 @@
 # lifehack 
 Problem statement: Whilst Singapore is considered a developed nation, there are still many who are less fortunate than others. How can we embrace inclusivity and integrate people who might otherwise be excluded or marginalized? 
 
-Often, scholarship money gets unused as students do not know of the existence of these scholarships. As such some students choose not to continue their tertiary education as they lack the financial means to do so. We felt that there is something that needs to be done to help include this marginalised group in the education scene in Singapore. Thus, we came up with scholYOUship.
+College fees are painfully expensive, some students are forced to take up student loans in order to continue their education, putting them in debt after thery graduate. But there is an alternative, scholarships. However, some scholarships are really hard to find. This causes scholarship money to often end up getting unused as students do not know of the existence of these scholarships. As such some students choose not to continue their tertiary education as they lack the financial means to do so. We felt that there is something that needs to be done to help include this marginalised group in the education scene in Singapore. Thus, we came up with scholYOUship.
 
 ScholYOUship is a telegram bot that helps to collate scholarship providers for prospective students
 to enable more to receive the financial aid required for their education and hopefully
-allow more students to be able to feed their passion for learning.
+allow more students to be able to feed their passion for learning. After inputing their details in the user profiling stage (Age, gender etc), the bot will present them with a list of scholarships that they qualify for.
 
 ## Getting started
 download all the necessay imports 
